@@ -2,6 +2,7 @@
 
 var gulp = require ('gulp'),
     gcmq = require('gulp-group-css-media-queries'),
+    browserSync = require('browser-sync').create(),
     glp  = require('gulp-load-plugins')();
 
 gulp.task('pug', function() {
@@ -17,7 +18,8 @@ gulp.task('pug', function() {
     .pipe(glp.pug({
       pretty: true
     }))
-    .pipe(gulp.dest('build'));
+    .pipe(gulp.dest('build'))
+    .on('end', browserSync.reload)
 });
 
 gulp.task('sass', function() {
@@ -36,7 +38,6 @@ gulp.task('sass', function() {
     ]))
     .pipe(gcmq())
     .pipe(glp.csscomb())
-    // .pipe(gulp.dest('build/css'))
     .pipe(glp.csso({
       restructure: false,
       sourceMap: true,
@@ -47,6 +48,9 @@ gulp.task('sass', function() {
     }))
     .pipe(glp.sourcemaps.write())
     .pipe(gulp.dest('build/css'))
+    .pipe(browserSync.reload({
+      stream: true
+    }));
 });
 
 gulp.task('watch', function() {
@@ -54,4 +58,15 @@ gulp.task('watch', function() {
   gulp.watch('src/sass/**/*.scss', gulp.series('sass'));
 });
 
-gulp.task('default', gulp.series(gulp.parallel('pug', 'sass', 'watch')));
+gulp.task('serve', function() {
+  browserSync.init({
+      server: {
+          baseDir: "./build"
+      }
+  });
+});
+
+gulp.task('default', gulp.series(
+  gulp.parallel('pug', 'sass'),
+  gulp.parallel('watch', 'serve')
+));
