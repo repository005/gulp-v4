@@ -1,9 +1,16 @@
 'use strict';
 
-var gulp = require ('gulp'),
-    gcmq = require('gulp-group-css-media-queries'),
+var gulp        = require('gulp'),
+    gcmq        = require('gulp-group-css-media-queries'),
     browserSync = require('browser-sync').create(),
-    glp  = require('gulp-load-plugins')();
+    glp         = require('gulp-load-plugins')(),
+    include     = require('gulp-file-include'),
+    pngquant    = require('imagemin-pngquant'),
+    del         = require('del');
+
+/////////////////////////////////////////////////
+//---------------------PUG---------------------//
+/////////////////////////////////////////////////
 
 gulp.task('pug', function() {
   return gulp.src('src/pug/*.pug')
@@ -21,6 +28,10 @@ gulp.task('pug', function() {
     .pipe(gulp.dest('build'))
     .on('end', browserSync.reload)
 });
+
+/////////////////////////////////////////////////
+//--------------------SASS---------------------//
+/////////////////////////////////////////////////
 
 gulp.task('sass', function() {
   return gulp.src('src/sass/style.scss')
@@ -53,10 +64,138 @@ gulp.task('sass', function() {
     }));
 });
 
+/////////////////////////////////////////////////
+//-------------------SCRIPTS-------------------//
+/////////////////////////////////////////////////
+
+gulp.task('scripts:libs', function() {
+  return gulp.src(
+      ['node_modules/jquery/dist/jquery.min.js'],
+      ['node_modules/slick-carousel/slick/slick.min.js']
+    )
+    .pipe(glp.concat('libs.min.js'))
+    .pipe(gulp.dest('build/js/'))
+    .pipe(browserSync.reload({
+      stream: true
+    }));
+});
+
+gulp.task('scripts', function() {
+  return gulp.src('src/js/main.js')
+    .pipe(glp.plumber({
+      errorHandler: glp.notify.onError(function(err){
+        return{
+          title: 'js:include',
+          message:err.message
+        };
+      })
+    }))
+    .pipe(include({
+      prefix: '@@',
+      basepath: '@file'
+    }))
+    .pipe(glp.babel({
+      presets: ['@babel/env']
+    }))
+    .pipe(glp.uglify())
+    .pipe(glp.rename({
+      extname: '.min.js'
+    }))
+    .pipe(gulp.dest('build/js/'))
+    .pipe(browserSync.reload({
+      stream: true
+    }));
+});
+
+/////////////////////////////////////////////////
+//---------------------IMG---------------------//
+/////////////////////////////////////////////////
+
+gulp.task('img', function() {
+  return gulp.src('src/img/**/*')
+    .pipe(glp.cache(glp.imagemin({
+      interlaced: true,
+      progressive: true,
+      svgoPlugins: [{removeVieBox: false}],
+      use: [pngquant()]
+    })))
+    .pipe(gulp.dest('build/img'))
+});
+
+/////////////////////////////////////////////////
+//-----------------CLEAR CACHE-----------------//
+/////////////////////////////////////////////////
+
+gulp.task('clear', function() {
+  return glp.cache.clearAll();
+});
+
+/////////////////////////////////////////////////
+//---------------------SVG---------------------//
+/////////////////////////////////////////////////
+
+gulp.task('svg', function() {
+  return gulp.src('src/svg/*.svg')
+    .pipe(glp.svgmin({
+      js2svg: {
+        pretty: true
+      }
+    }))
+    .pipe(glp.cheerio({
+      run: function ($) {
+        $('[fill]').removeAttr('fill');
+        $('[stroke]').removeAttr('stroke');
+        $('[style]').removeAttr('style');
+      },
+      parserOptions: {xmlMode: false}
+    }))
+    .pipe(glp.svgmin(function () {
+      return {
+        plugins: [{
+          cleanupIDs: {
+            minify: true
+          }
+        }]
+      }
+    }))
+    .pipe(glp.svgstore())
+    .pipe(glp.rename('icons.svg'))
+    .pipe(gulp.dest('build/svg'));
+});
+
+/////////////////////////////////////////////////
+//--------------------COPY---------------------//
+/////////////////////////////////////////////////
+
+gulp.task('copy', function () {
+	return gulp.src('src/files/**/*')
+		.pipe(gulp.dest('build/'))
+});
+
+/////////////////////////////////////////////////
+//---------------------DEL---------------------//
+/////////////////////////////////////////////////
+
+gulp.task('del', function(done) {
+  del("build");
+  done();
+});
+
+/////////////////////////////////////////////////
+//--------------------WATCH--------------------//
+/////////////////////////////////////////////////
+
 gulp.task('watch', function() {
   gulp.watch('src/pug/**/*.pug', gulp.series('pug'));
   gulp.watch('src/sass/**/*.scss', gulp.series('sass'));
+  gulp.watch('src/js/**/*.js', gulp.series('scripts'));
+  gulp.watch('src/img/**/*', gulp.series('img'));
+  gulp.watch('src/svg/**/*.svg', gulp.series('svg'));
 });
+
+/////////////////////////////////////////////////
+//--------------------SERVE--------------------//
+/////////////////////////////////////////////////
 
 gulp.task('serve', function() {
   browserSync.init({
@@ -66,7 +205,19 @@ gulp.task('serve', function() {
   });
 });
 
+/////////////////////////////////////////////////
+//-------------------DEFAULT-------------------//
+/////////////////////////////////////////////////
+
 gulp.task('default', gulp.series(
-  gulp.parallel('pug', 'sass'),
+  gulp.parallel('copy', 'pug', 'sass', 'scripts:libs', 'scripts', 'img', 'svg'),
   gulp.parallel('watch', 'serve')
+));
+
+/////////////////////////////////////////////////
+//--------------------BUILD--------------------//
+/////////////////////////////////////////////////
+
+gulp.task('build', gulp.series(
+  ['copy', 'pug', 'sass', 'scripts:libs', 'scripts', 'img', 'svg']
 ));
