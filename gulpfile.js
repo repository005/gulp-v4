@@ -6,7 +6,8 @@ var gulp        = require('gulp'),
     glp         = require('gulp-load-plugins')(),
     include     = require('gulp-file-include'),
     pngquant    = require('imagemin-pngquant'),
-    del         = require('del');
+    del         = require('del'),
+    gulpIf      = require('gulp-if');
 
 /////////////////////////////////////////////////
 //---------------------PUG---------------------//
@@ -149,18 +150,22 @@ gulp.task('svg', function() {
       },
       parserOptions: {xmlMode: false}
     }))
-    .pipe(glp.svgmin(function () {
-      return {
-        plugins: [{
-          cleanupIDs: {
-            minify: true
+    .pipe(glp.replace('&gt;', '>'))
+    .pipe(glp.svgSprite({
+      mode: {
+        symbol: {
+          sprite: "../sprite.svg",
+          render: {
+            scss: {
+              dest:"../_sprite.scss",
+              template: "src/sass/global/sprite/_sprite_template.scss"
+            }
           }
-        }]
+        }
       }
     }))
-    .pipe(glp.svgstore())
-    .pipe(glp.rename('icons.svg'))
-    .pipe(gulp.dest('build/svg'));
+    .pipe(gulpIf('*.scss', gulp.dest('./src/sass/global/sprite'),gulp.dest('./build/img/sprite')
+    ))
 });
 
 /////////////////////////////////////////////////
@@ -210,7 +215,8 @@ gulp.task('serve', function() {
 /////////////////////////////////////////////////
 
 gulp.task('default', gulp.series(
-  gulp.parallel('copy', 'pug', 'sass', 'scripts:libs', 'scripts', 'img', 'svg'),
+  gulp.parallel('copy', 'img', 'svg'),
+  gulp.parallel('pug', 'scripts:libs', 'scripts', 'sass'),
   gulp.parallel('watch', 'serve')
 ));
 
@@ -219,5 +225,6 @@ gulp.task('default', gulp.series(
 /////////////////////////////////////////////////
 
 gulp.task('build', gulp.series(
-  ['copy', 'pug', 'sass', 'scripts:libs', 'scripts', 'img', 'svg']
+  ['del'],
+  ['copy', 'img', 'svg', 'pug', 'sass', 'scripts:libs', 'scripts']
 ));
