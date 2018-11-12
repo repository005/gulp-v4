@@ -74,6 +74,7 @@ gulp.task('scripts:libs', function() {
   return gulp.src(
       ['node_modules/jquery/dist/jquery.min.js',
       'node_modules/slick-carousel/slick/slick.min.js',
+      'node_modules/object-fit-images/dist/ofi.min.js',
       'node_modules/svg4everybody/dist/svg4everybody.min.js']
     )
     .pipe(glp.concat('libs.min.js'))
@@ -237,6 +238,5 @@ gulp.task('default', gulp.series(
 /////////////////////////////////////////////////
 
 gulp.task('build', gulp.series(
-  ['del'],
   ['copy', 'img', 'svg', 'svg:base', 'pug', 'sass', 'scripts:libs', 'scripts']
 ));
