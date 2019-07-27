@@ -38,7 +38,14 @@ video {
 
 input,
 textarea {
-  -webkit-overflow-scrolling: touch;
+  font: inherit;
+  border: none;
+  background: red;
+  width: auto;
+  max-width: initial;
+  min-width: initial;
+  padding: 0;
+  display: block;
 }
 
 button {
@@ -68,4 +75,12 @@ input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none !important;
   margin: 0 !important;
+}
+
+button {
+  border: none;
+  background: none;
+  font: inherit;
+  padding: 0;
+  margin: 0;
 }

@@ -8,7 +8,8 @@ var gulp        = require('gulp'),
     pngquant    = require('imagemin-pngquant'),
     del         = require('del'),
     gulpIf      = require('gulp-if'),
-    svgcss      = require('gulp-svg-css');
+    svgcss      = require('gulp-svg-css'),
+    merge       = require('merge-stream');
 
 /////////////////////////////////////////////////
 //---------------------PUG---------------------//
@@ -50,15 +51,14 @@ gulp.task('sass', function() {
       'last 10 versions'
     ]))
     .pipe(gcmq())
-    .pipe(glp.csscomb())
-    // .pipe(glp.csso({
-    //   restructure: false,
-    //   sourceMap: true,
-    //   debug: true
-    // }))
-    // .pipe(glp.rename({
-    //   extname: '.min.css'
-    // }))
+    .pipe(glp.csso({
+      restructure: false,
+      sourceMap: true,
+      debug: true
+    }))
+    .pipe(glp.rename({
+      extname: '.min.css'
+    }))
     .pipe(glp.sourcemaps.write())
     .pipe(gulp.dest('build/css'))
     .pipe(browserSync.reload({
@@ -72,10 +72,14 @@ gulp.task('sass', function() {
 
 gulp.task('scripts:libs', function() {
   return gulp.src(
-      ['node_modules/jquery/dist/jquery.min.js',
+      [
+      'node_modules/jquery/dist/jquery.min.js',
       'node_modules/slick-carousel/slick/slick.min.js',
       'node_modules/object-fit-images/dist/ofi.min.js',
-      'node_modules/svg4everybody/dist/svg4everybody.min.js']
+      // 'node_modules/@fancyapps/fancybox/dist/jquery.fancybox.min.js',
+      'node_modules/svg4everybody/dist/svg4everybody.min.js',
+      // 'node_modules/jquery-validation/dist/jquery.validate.min.js'
+    ]
     )
     .pipe(glp.concat('libs.min.js'))
     .pipe(gulp.dest('build/js/'))
@@ -101,10 +105,10 @@ gulp.task('scripts', function() {
     .pipe(glp.babel({
       presets: ['@babel/env']
     }))
-    // .pipe(glp.uglify())
-    // .pipe(glp.rename({
-    //   extname: '.min.js'
-    // }))
+    .pipe(glp.uglify())
+    .pipe(glp.rename({
+      extname: '.min.js'
+    }))
     .pipe(gulp.dest('build/js/'))
     .pipe(browserSync.reload({
       stream: true
@@ -182,6 +186,20 @@ gulp.task('svg', function() {
 // });
 
 /////////////////////////////////////////////////
+//-------------------SLICK---------------------//
+/////////////////////////////////////////////////
+
+gulp.task('slick', function () {
+    var fonts = gulp.src('node_modules/slick-carousel/slick/fonts/*')
+    .pipe(gulp.dest('build/css/fonts'));
+
+    var gif = gulp.src('node_modules/slick-carousel/slick/ajax-loader.gif')
+      .pipe(gulp.dest('build/css'));
+
+    return merge(fonts, gif);
+});
+
+/////////////////////////////////////////////////
 //--------------------COPY---------------------//
 /////////////////////////////////////////////////
 
@@ -247,5 +265,5 @@ gulp.task('default', gulp.series(
 /////////////////////////////////////////////////
 
 gulp.task('build', gulp.series(
-  ['copy', 'fav', 'img', 'svg', 'pug', 'sass', 'scripts:libs', 'scripts']
+  ['copy', 'slick', 'fav', 'img', 'svg', 'pug', 'sass', 'scripts:libs', 'scripts']
 ));
